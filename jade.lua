@@ -3,7 +3,7 @@
 # comments come after numsign
 # multiline comments don't exist
 # a semicolon ends the current statement and also resets the stack
-# NOTE: a newline also acts as a semicolon so it is not necessary if you properly format your code.
+# NOTE: newlines and tabs are automatically removed
 # a semicolon also ends a comment;
 
 c set; # sets the next variable to be stored as c then resets the stack
@@ -42,6 +42,12 @@ tCopy = function( t, lookup_table )
 	end
 
 	return copy
+end
+
+local function tobool( val )
+	if val == "false" then return false end
+	if val == "true" then return true end
+	return nil
 end
 
 -- now let's get into this shit
@@ -126,6 +132,9 @@ local keywords = {
 
 		kw( "wipe", stack, info, data )
 		return true
+	end,
+	[ "or" ] = function( stack, info, data )
+		return stack(first) or stack(last)
 	end,
 	-- loop functionality: key value table <operations> loop;
 	[ "loop" ] = function( stack, info, data )
@@ -232,27 +241,30 @@ local keywords = {
 			end
 		end
 	end,
-	-- calls a function if all stack variables equate to true
+	-- calls a function under a condition
 	[ "dial" ] = function( stack, info, data )
 		local args = tCopy( stack.data )
 		local func = table.remove( args, #args )
+		local condition = table.remove( args, #args )
 
-		for k, v in pairs( args ) do
-			if not v then return end
-		end
+		if not condition then return end
+		print( "condition is " .. type(condition) .. ":" .. tostring(condition) )
 
-		kw( "ring", {data={func}}, info, data )
+		table.insert( args, func )
+
+		kw( "ring", {data=args}, info, data )
 	end,
 	-- wipes before dialing
 	[ "dialx" ] = function( stack, info, data )
 		local args = tCopy( stack.data )
 		local func = table.remove( args, #args )
+		local condition = table.remove( args, #args )
 
-		for k, v in pairs( args ) do
-			if not v then return end
-		end
+		if not condition then return end
 
-		kw( "ringx", {data={func}}, info, data )
+		table.insert( args, func )
+
+		kw( "ring", {data=args}, info, data )
 	end,
 	-- defines a function
 	-- should be used like: arg1 arg2 arg3 arg4 <function operations> funk;
@@ -293,6 +305,8 @@ end
 
 local quotes = {["\""] = "\"", ["'"] = "'", ["<"] = ">"}
 local function ParseJade( str )
+	str = string.gsub( string.gsub( str, "\n", "" ), "\t", "" )
+
 	local Statements = {}
 	local Split = ToTable( str )
 
@@ -487,10 +501,14 @@ ExecuteJade = function( str, temp, love )
 					end
 				end
 			else
-				var = cmd.funk and funkify(cmd.cmd) or 
+				if tobool( cmd.cmd ) ~= nil then
+					var = tobool( cmd.cmd )
+				else
+					var = cmd.funk and funkify(cmd.cmd) or 
 					not cmd.raw and cmd.cmd or tonumber( cmd.cmd ) or 
-					( cmd.cmd == "true" or cmd.cmd == "false" ) and tobool( cmd.cmd ) or 
+					( cmd.cmd == "true" or cmd.cmd == "false" ) or 
 					evaluate( cmd.cmd, face )
+				end
 
 				stack( var, true )
 			end
