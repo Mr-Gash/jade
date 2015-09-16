@@ -3,7 +3,7 @@
 # comments come after numsign
 # multiline comments don't exist
 # a semicolon ends the current statement and also resets the stack
-# NOTE: newlines and tabs are automatically removed
+# NOTE: newlines are replaced with spaces and tabs are removed
 # a semicolon also ends a comment;
 
 c set; # sets the next variable to be stored as c then resets the stack
@@ -206,7 +206,7 @@ local keywords = {
 			return
 		end
 
-		table.concat( stack(last), stack(first) )
+		return table.concat( stack(last), stack(first) )
 	end,
 	-- calls a function
 	[ "ring" ] = function( stack, info, data )
@@ -305,7 +305,7 @@ end
 
 local quotes = {["\""] = "\"", ["'"] = "'", ["<"] = ">"}
 local function ParseJade( str )
-	str = string.gsub( string.gsub( str, "\n", "" ), "\t", "" )
+	str = string.gsub( string.gsub( str, "\n", " " ), "\t", "" )
 
 	local Statements = {}
 	local Split = ToTable( str )
@@ -506,7 +506,6 @@ ExecuteJade = function( str, temp, love )
 				else
 					var = cmd.funk and funkify(cmd.cmd) or 
 					not cmd.raw and cmd.cmd or tonumber( cmd.cmd ) or 
-					( cmd.cmd == "true" or cmd.cmd == "false" ) or 
 					evaluate( cmd.cmd, face )
 				end
 
