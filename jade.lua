@@ -100,7 +100,8 @@ local keywords = {
 	end,
 	-- basic math!
 	[ "+" ] = function( stack, info, data )
-		return stack(first) + stack(last)
+		return type(stack(first)) == "string" and stack(first) .. stack(last) or
+			stack(first) + stack(last)
 	end,
 	[ "-" ] = function( stack, info, data )
 		return stack(first) - stack(last)
@@ -214,6 +215,23 @@ local keywords = {
 			end
 		end
 	end,
+	-- wipes before calling
+	[ "ringx" ] = function( stack, info, data )
+		local args = {}
+		for k, v in pairs( stack.data ) do
+			if k == #stack.data then
+				if type(v) ~= "function" then
+					error( "did not receive function to call (expected function, got " .. type(v) .. ")" )
+					return
+				else
+					kw( "wipe", stack, info, data )
+					return v( table.unpack( args ) )
+				end
+			else
+				args[ #args + 1 ] = v
+			end
+		end
+	end,
 	-- calls a function if all stack variables equate to true
 	[ "dial" ] = function( stack, info, data )
 		local args = tCopy( stack.data )
@@ -224,6 +242,17 @@ local keywords = {
 		end
 
 		kw( "ring", {data={func}}, info, data )
+	end,
+	-- wipes before dialing
+	[ "dialx" ] = function( stack, info, data )
+		local args = tCopy( stack.data )
+		local func = table.remove( args, #args )
+
+		for k, v in pairs( args ) do
+			if not v then return end
+		end
+
+		kw( "ringx", {data={func}}, info, data )
 	end,
 	-- defines a function
 	-- should be used like: arg1 arg2 arg3 arg4 ^function operations^ funk;
