@@ -11,11 +11,11 @@ c set; # sets the next variable to be stored as c then resets the stack
 
 # we can get c by just typing /c/
 
-# strings can be created and wrapped 3 ways: ^, ", and '
-# however, ^ should ONLY be used for function operations.
+# strings can be created and wrapped 3 ways: <>, ", and '
+# however, <> should ONLY be used for function operations.
 
 # keep in mind that this language works from smallest -> largest in terms of importance.
-# for example, when defining a function: args name ^operations^ funk;
+# for example, when defining a function: args name <operations> funk;
 # args are of least importance, then the name for the operation, then the actual operations of the function, and finally "funk" used to define it.
 # to define a variable: 5 cat sdef; # value, the identifying name, then the keyword to define it.
 
@@ -127,7 +127,7 @@ local keywords = {
 		kw( "wipe", stack, info, data )
 		return true
 	end,
-	-- loop functionality: key value table ^operations^ loop;
+	-- loop functionality: key value table <operations> loop;
 	[ "loop" ] = function( stack, info, data )
 		local args = tCopy( stack.data )
 
@@ -137,7 +137,7 @@ local keywords = {
 		local key = #args > 0 and table.remove( args, #args ) or nil
 
 		if type(operation) ~= "table" or not operation.funk then
-			error( "invalid operation given to loop (^operation^ expected, got " .. type(operation) .. ")" )
+			error( "invalid operation given to loop (<operation> expected, got " .. type(operation) .. ")" )
 			return
 		end
 
@@ -255,7 +255,7 @@ local keywords = {
 		kw( "ringx", {data={func}}, info, data )
 	end,
 	-- defines a function
-	-- should be used like: arg1 arg2 arg3 arg4 ^function operations^ funk;
+	-- should be used like: arg1 arg2 arg3 arg4 <function operations> funk;
 	[ "funk" ] = function( stack, info, data )
 		local args = tCopy( stack.data )
 		local funk = table.remove( args, #args )
@@ -291,7 +291,7 @@ kw = function( name, stack, info, data )
 	return keywords[ name ]( stack, info, data )
 end
 
-local quotes = {["\""] = true, ["'"] = true, ["^"] = true}
+local quotes = {["\""] = "\"", ["'"] = "'", ["<"] = ">"}
 local function ParseJade( str )
 	local Statements = {}
 	local Split = ToTable( str )
@@ -299,6 +299,7 @@ local function ParseJade( str )
 	local log = {} -- stores all of our commands before our ending /;/
 	local current = ""
 	local inside_string = false -- toggled by a double quote
+	local quote_recursion = 0 -- for quotes with differing opening/closing characters inside itself
 	local inside_comment = false -- once enabled, doesn't disable until the line ends or a /;/ ennds it.
 
 	for count, char in pairs( Split ) do
@@ -324,10 +325,18 @@ local function ParseJade( str )
 			else
 				if inside_string then
 					if char == inside_string then
-						inside_string = false
-						log[ #log + 1 ] = { raw = false, cmd = current, funk = char == "^" }
-						current = ""
-						goto lazycontinue
+						quote_recursion = quote_recursion + 1
+						current = current .. char
+					elseif char == quotes[ inside_string ] then
+						quote_recursion = quote_recursion - 1
+						if quote_recursion <= 0 then
+							inside_string = false
+							log[ #log + 1 ] = { raw = false, cmd = current, funk = char == ">" }
+							current = ""
+							goto lazycontinue
+						else
+							current = current .. char
+						end
 					else
 						current = current .. char
 					end
@@ -338,6 +347,7 @@ local function ParseJade( str )
 					end
 				elseif quotes[ char ] then
 					inside_string = char
+					quote_recursion = 1
 				else
 					current = current .. char
 				end
