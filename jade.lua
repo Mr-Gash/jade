@@ -1,23 +1,24 @@
 --[[
 
-# comments come after numsign
-# multiline comments don't exist
-# a semicolon ends the current statement and also resets the stack
-# NOTE: newlines are replaced with spaces and tabs are removed
-# a semicolon also ends a comment;
+# comments come after numsign;
+# multiline comments technically exist because all must end with a semicolon;
+# a semicolon ends the current statement and also resets the stack;
+# NOTE: newlines are replaced with spaces and tabs are removed;
 
-c set; # sets the next variable to be stored as c then resets the stack
-2 5 +; # inserts 2 to the stack, inserts 5 to the stack, then adds them (and sets if we defined a set point)
+c set; # sets the next variable to be stored as c then resets the stack;
+2 5 +; # inserts 2 to the stack, inserts 5 to the stack, then adds them (and sets if we defined a set point);
 
-# we can get c by just typing /c/
+# we can get c by just typing /c/;
 
-# strings can be created and wrapped 3 ways: <>, ", and '
-# however, <> should ONLY be used for function operations.
+# strings can be created and wrapped 3 ways: <>, ", and ';
+# however, <> should ONLY be used for function operations.;
 
-# keep in mind that this language works from smallest -> largest in terms of importance.
+# keep in mind that this language works from smallest -> largest in terms of importance.;
 # for example, when defining a function: args name <operations> funk;
-# args are of least importance, then the name for the operation, then the actual operations of the function, and finally "funk" used to define it.
-# to define a variable: 5 cat sdef; # value, the identifying name, then the keyword to define it.
+# args are of least importance, then the name for the operation, 
+# then the actual operations of the function, and finally "funk" used to define it.;
+# to define a variable: 5 cat sdef; # value, the identifying name, 
+# then the keyword to define it.;
 
 ]]
 
@@ -81,6 +82,16 @@ local keywords = {
 	[ "wipe" ] = function( stack )
 		stack.data = {}
 	end,
+	-- deletes a variable
+	[ "del" ] = function( stack, info, data )
+		data[ stack(last) ] = nil
+	end,
+	-- deletes all variables found from stack
+	[ "dels" ] = function( stack, info, data )
+		for k, v in pairs( stack.data ) do
+			data[ v ] = nil
+		end
+	end,
 	-- defines a variable and also performs /set/ on the variable
 	[ "def" ] = function( stack, info, data )
 		data[ stack(last) ] = stack(first)
@@ -125,13 +136,22 @@ local keywords = {
 	[ "!=" ] = function( stack, info, data )
 		return stack(first) ~= stack(last)
 	end,
-	[ "ifthen" ] = function( stack, info, data )
+	[ "conclude" ] = function( stack, info, data )
 		for k, v in pairs( stack.data ) do
 			if not v then return false end
 		end
 
 		kw( "wipe", stack, info, data )
 		return true
+	end,
+	-- param <if> <if not> ifelse;
+	[ "ifelse" ] = function( stack, info, data )
+		local args = tCopy( stack.data )
+		local ifnot = table.remove( args, #args )
+		local If = table.remove( args, #args )
+		local param = table.remove( args, #args )
+
+		ExecuteJade( param and If.cmd or ifnot.cmd, {}, data )
 	end,
 	[ "or" ] = function( stack, info, data )
 		return stack(first) or stack(last)
@@ -290,6 +310,17 @@ local keywords = {
 	[ "print" ] = function( stack, _, data )
 		print( table.unpack({tostring(stack(first)), #stack.data > 1 and tostring(stack(last)) or nil}) )
 	end,
+	-- completely stops execution of the program
+	-- note that it does not terminate here, this is merely called on termination
+	-- also, this elevates the termination to the entire execution.
+	-- for a local termination (restricted inside the relative <operation>), see cancel
+	[ "terminate" ] = function( stack, info, data )
+		--print( "goodbye!" )
+	end,
+	-- local termination
+	[ "cancel" ] = function( stack, info, data )
+		--print( "goodbye for now!" )
+	end,
 	-- don't do this :(
 	[ "crazy" ] = function( stack )
 		local condom = load( stack(last) )
@@ -436,7 +467,7 @@ end
 ExecuteJade = function( str, temp, love )
 	temp = temp or {} -- used for func rings
 
-	local data = love or {} -- where we store our variables and etc - func rings might pass us diff data to reference
+	local data = love or { TERMINATE = false } -- where we store our variables and etc - func rings might pass us diff data to reference
 	local face = {} -- used instead of temp/data/global directly.
 
 	setmetatable( face, {
@@ -483,6 +514,7 @@ ExecuteJade = function( str, temp, love )
 		set = false, -- used by the keyword "set" to store variables.
 	}
 	local var = nil -- disposable
+	local terminate_me = false
 
 	local Statements = ParseJade( str )
 	for count1, Commands in pairs( Statements ) do
@@ -500,6 +532,15 @@ ExecuteJade = function( str, temp, love )
 						end
 					end
 				end
+
+				if cmd.cmd == "terminate" then 
+					terminate_me = true
+					data.TERMINATE = true
+					break 
+				elseif cmd.cmd == "cancel" then
+					terminate_me = true
+					break
+				end
 			else
 				if tobool( cmd.cmd ) ~= nil then
 					var = tobool( cmd.cmd )
@@ -512,6 +553,9 @@ ExecuteJade = function( str, temp, love )
 				stack( var, true )
 			end
 		end
+
+		if terminate_me then break end
+		if data.TERMINATE then break end
 	end
 end
 
