@@ -1,24 +1,24 @@
 --[[
 
-# comments come after numsign;
-# multiline comments technically exist because all must end with a semicolon;
-# a semicolon ends the current statement and also resets the stack;
-# NOTE: newlines are replaced with spaces and tabs are removed;
+# comments come after numsign
+multiline comments technically exist because all must end with a semicolon
+a semicolon ends the current statement and also resets the stack
+NOTE: newlines are replaced with spaces and tabs are removed ;
 
 c set; # sets the next variable to be stored as c then resets the stack;
 2 5 +; # inserts 2 to the stack, inserts 5 to the stack, then adds them (and sets if we defined a set point);
 
-# we can get c by just typing /c/;
+# we can get c by just typing c
 
-# strings can be created and wrapped 3 ways: <>, ", and ';
-# however, <> should ONLY be used for function operations.;
+strings can be created and wrapped 3 ways: <>, ", and '
+however, <> should ONLY be used for function operations. 
 
-# keep in mind that this language works from smallest -> largest in terms of importance.;
-# for example, when defining a function: args name <operations> funk;
-# args are of least importance, then the name for the operation, 
-# then the actual operations of the function, and finally "funk" used to define it.;
-# to define a variable: 5 cat sdef; # value, the identifying name, 
-# then the keyword to define it.;
+keep in mind that this language works from smallest -> largest in terms of importance.
+for example, when defining a function: args name <operations> funk
+args are of least importance, then the name for the operation, 
+then the actual operations of the function, and finally "funk" used to define it.
+to define a variable: 5 cat sdef; # value, the identifying name, 
+then the keyword to define it. ;
 
 ]]
 
